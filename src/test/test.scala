@@ -72,19 +72,25 @@ object Tests extends Suite(t"Panopticon tests"):
       lens.get(org)
     .assert(_ == 120000)
     
-    test(t"Can updatea value with a simple lens"):
+    test(t"Can update a value with a simple lens"):
       val lens = Lens[Role](_.salary)
       val newRole: Role = lens.set(ceo, 100)
       newRole.salary
     .assert(_ == 100)
     
-    test(t"Can updatea value with a deep lens"):
+    test(t"Can update a value with a deep lens"):
       val lens = Lens[Organization](_.leader.role.salary)
       val newOrganization: Organization = lens.set(org, 1000)
       newOrganization.leader.role.salary
     .assert(_ == 1000)
 
 
+    test(t"Can combine two lenses"):
+      val lens: Lens[Organization, ("salary", "role", "leader"), Int] = Lens[Organization](_.leader.role.salary)
+      val lens2: Lens[Organization, ("name", "leader"), String] = Lens[Organization](_.leader.name)
+      //val lens3: Lens[Organization, (("salary", "role", "leader"), ("name", "leader")), (Int, String)] = Lens.fuse(lens, lens2)
+      val lens3 = Lens.fuse(lens, lens2)
+    .assert()
     // val orgName = new Lens[Organization, "name" *: EmptyTuple, String](_.name, (org, name) => org.copy(name = name))
     
     // test(t"Manual lens can access field"):

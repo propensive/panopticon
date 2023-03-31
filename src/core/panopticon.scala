@@ -29,6 +29,11 @@ object opaques:
     def apply[FromType]: InitLens[FromType] = 0
     def make[FromType, PathType <: Tuple, ToType](): Lens[FromType, PathType, ToType] = 0
 
+    transparent inline def fuse
+        [FromType, PathType <: Tuple, ResultType]
+        (lenses: Lens[FromType, PathType, ResultType]*)
+        : Lens[FromType, Tuple, Tuple] =
+      ${PanopticonMacros.fuse[FromType, PathType, ResultType]('lenses)}
 
   extension [FromType](initLens: InitLens[FromType])
     def apply
@@ -61,6 +66,29 @@ trait MemberType[TargetType, LabelType <: String & Singleton]:
   type ReturnType
 
 object PanopticonMacros:
+
+  def fuse
+      [FromType: Type, PathType <: Tuple: Type, ResultType: Type]
+      (lenses: Expr[Seq[Lens[FromType, PathType, ResultType]]])(using Quotes)
+      : Expr[Lens[FromType, Tuple, Tuple]] =
+    import quotes.reflect.*
+    
+    def buildPathType
+        (lenses: Expr[Seq[Lens[FromType, PathType, ResultType]]],
+            path: TypeRepr = TypeRepr.of[EmptyTuple], result: TypeRepr = TypeRepr.of[EmptyTuple])
+        : (TypeRepr, TypeRepr) =
+      lenses match
+        case _ =>
+          (path, result)
+        case '{ ($head: Lens[FromType, nextPathType, nextResultType]) +: ($tail: tailType) } =>
+          (path.asType, result.asType) match
+            case ('[pathType], '[resultType]) =>
+              buildPathType(tail, TypeRepr.of[nextPathType *: (pathType & Tuple)],
+                  TypeRepr.of[nextResultType *: (resultType & Tuple)])
+      
+      buildPathType(lenses)
+
+    '{???}
 
   private def
       getPath[TupleType: Type](path: List[String] = Nil)(using Quotes): List[String] =
